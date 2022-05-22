@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SnakeVS</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="SnakeVS.Client.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script type="text/javascript">
+        (function (l) {
+            if (l.search) {
+                var q = {};
+                l.search.slice(1).split('&').forEach(function (v) {
+                    var a = v.split('=');
+                    q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
+                });
+                if (q.p !== undefined) {
+                    window.history.replaceState(null, null,
+                        l.pathname.slice(0, -1) + (q.p || '') +
+                        (q.q ? ('?' + q.q) : '') +
+                        l.hash
+                    );
+                }
+            }
+        }(window.location))
+    </script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
+    <script>
+
+        function gameLoop(timestamp) {
+            //console.log('frame');
+            //window.requestAnimationFrame(gameLoop);
+            //game.instance.invokeMethodAsync('GameLoop');
+            game.instance.invokeMethodAsync('GameLoop',timestamp);
+        }
+
+        function onResize() {
+            if (!window.game.canvas)
+                return;
+
+            //game.canvas.width = window.innerWidth;
+            //game.canvas.height = window.innerHeight;
+        }
+
+        window.initGame = (instance) => {
+            //console.log('init');
+            var canvasContainer = document.getElementById('divCanvas'),
+                canvases = canvasContainer.getElementsByTagName('canvas') || [];
+            window.game = {
+                instance: instance,
+                canvas: canvases.length ? canvases[0] : null
+            };
+
+            window.addEventListener("resize", onResize);
+            onResize();
+            console.log("start");
+            //window.requestAnimationFrame(gameLoop);
+            game_loop = setInterval(gameLoop, 250);
+        }
+
+        window.SetFocusToElement = (el) => {
+            el.focus();
+        };
+
+        window.JsFunctions = (instance) = {
+            addKeyboardListenerEvent: function (instance) {
+                let serializeEvent = function (e) {
+                    if (e) {
+                        return {
+                            key: e.key,
+                            code: e.keyCode.toString(),
+                            location: e.location,
+                            repeat: e.repeat,
+                            ctrlKey: e.ctrlKey,
+                            shiftKey: e.shiftKey,
+                            altKey: e.altKey,
+                            metaKey: e.metaKey,
+                            type: e.type
+                        };
+                    }
+                };
+                //console.log("key press init");
+                console.log(instance);
+                // window.document.addEventListener('onkeydown', function (e) { // Original error
+                window.document.addEventListener('keydown', function (e) {
+                    instance.invokeMethodAsync('KeyDown', serializeEvent(e))
+                });
+            }
+        };
+
+        
+
+        //window.requestAnimationFrame(gameLoop);
+    </script>
+
+</body>
+
+</html>
