@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-
+using MessagePack;
 using SnakeVS.Shared;
 
 namespace SnakeVS.Server.Hubs

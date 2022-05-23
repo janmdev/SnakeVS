@@ -1,5 +1,8 @@
-﻿namespace SnakeVS.Shared
+﻿
+
+namespace SnakeVS.Shared
 {
+
     public class Snake
     {
         public uint PlayerNumber { get; set; }
