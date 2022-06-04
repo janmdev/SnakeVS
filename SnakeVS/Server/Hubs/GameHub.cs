@@ -9,6 +9,7 @@ namespace SnakeVS.Server.Hubs
         public List<Room> Rooms = new List<Room>();
         public override async Task OnConnectedAsync()
         {
+            
             await base.OnConnectedAsync();
         }
 

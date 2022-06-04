@@ -8,6 +8,8 @@ namespace SnakeVS.Client
         public UserState(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
+            //var userState = _localStorage.GetItemAsync<UserState>("state").Result;
+            //var userState = Task<UserState>.Run(async () => _localStorage.GetItemAsync<UserState>("state")).Result.Result;
             UserName = "tester";
             LastRoom = Guid.NewGuid();
         }
