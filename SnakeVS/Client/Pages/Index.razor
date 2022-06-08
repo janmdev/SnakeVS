@@ -1,15 +1,110 @@
 ﻿@page "/"
+@using SnakeVS.Shared
+@using Microsoft.AspNetCore.SignalR.Client
+@using MessagePack
+@using SnakeVS.Shared.Response
 
 @inject UserState userState
 @inject NavigationManager NavManager
+@inject NavigationManager NavigationManager
 
 <input @bind-value="userNameValue"/>
-<button @onclick="setUserName">OK</button>
+@if (rooms != null)
+{
+    <table style="border: 1px solid black">
+        <tr>
+            <td>
+                Id
+            </td>
+            <td>
+                Nazwa
+            </td>
+            <td>
+                C
+            </td>
+            <td>
+
+            </td>
+        </tr>
+        @foreach (var room in rooms)
+        {
+            <tr>
+                <td>
+                    @room.Id
+                </td>
+                <td>
+                    @room.Name
+                </td>
+                <td>
+                    @room.PlayerCount / 2
+                </td>
+                <td>
+                    <button @onclick="() => JoinRoom(room.Id)"> Enter</button>
+                </td>
+            </tr>
+        }
+        <tr>
+            <td>
+                
+            </td>
+            <td>
+                <input type="text" @bind-value="roomNameValue"/>
+            </td>
+            <td>
+                <button @onclick="() => CreateRoom(roomNameValue)">Add</button>
+            </td>
+        </tr>
+    </table>
+    
+}
+else
+{
+    <p>Loading rooms...</p>
+}
 @code {
-	private string userNameValue;
-	protected void setUserName()
-	{
-		userState.UserName = userNameValue;
-		NavManager.NavigateTo("/game");
-	}
+    private HubConnection? hubConnection;
+    private string userNameValue;
+    private string roomNameValue;
+    private List<ListedRoom> rooms;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if(hubConnection == null)
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri($"/roomshub"))
+                .AddMessagePackProtocol(options =>
+                {
+                    options.SerializerOptions =
+                        MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
+                })
+                .Build();
+        }
+
+        hubConnection.On<ListedRoom[]>("GetRooms", (rooms_) =>
+        {
+            rooms = new List<ListedRoom>(rooms_);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+        await hubConnection.SendAsync("ListRooms");
+    }
+
+    private Task JoinRoom(Guid roomGuid)
+    {
+        userState.UserName = userNameValue;
+        NavManager.NavigateTo($"/game/{roomGuid}");
+        return Task.CompletedTask;
+    }
+
+    private async Task CreateRoom(string roomName)
+    {
+        if (!rooms.Any(p => p.Name.Trim().ToUpper() == roomName))
+        {
+            await hubConnection.SendAsync("CreateRoom", roomName);
+        }
+    }
+
 }

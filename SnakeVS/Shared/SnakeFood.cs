@@ -2,11 +2,12 @@
 
 namespace SnakeVS.Shared
 {
+    [MessagePackObject]
     public class SnakeFood
     {
-        [Key(7)]
-        public int PositionX { get; set; }
-        [Key(8)]
-        public int PositionY { get; set; }
+        [Key(30)]
+        public sbyte PositionX { get; set; }
+        [Key(31)]
+        public sbyte PositionY { get; set; }
     }
 }

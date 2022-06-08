@@ -1,3 +1,4 @@
+using MessagePack;
 using Microsoft.AspNetCore.ResponseCompression;
 using SnakeVS.Server.Hubs;
 
@@ -8,7 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR()
-    .AddMessagePackProtocol();
+    .AddMessagePackProtocol(options =>
+    {
+        options.SerializerOptions =
+            MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
+    });
 builder.Services.AddResponseCompression(options => 
     options.MimeTypes = ResponseCompressionDefaults
     .MimeTypes
@@ -41,6 +46,7 @@ app.UseResponseCompression();
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<GameHub>("/gamehub");
+app.MapHub<RoomsHub>("/roomshub");
 app.MapFallbackToFile("index.html");
 
 app.Run();

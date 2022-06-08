@@ -1,20 +1,43 @@
 ﻿
 
+using MessagePack;
+
 namespace SnakeVS.Shared
 {
-
+    [MessagePackObject]
     public class Snake
     {
-        public uint PlayerNumber { get; set; }
+        [Key(10)]
+        public sbyte PlayerNumber { get; set; }
+        [IgnoreMember]
         public List<SnakeNode> Nodes { get; set; }
+        [Key(11)]
+        public SnakeNode[] NodeArray
+        {
+            get
+            {
+                return Nodes.ToArray();
+            }
+            set
+            {
+                Nodes = new List<SnakeNode>(value);
+            }
+        }
+        [Key(12)]
         public Direction Dir { get; set; }
 
-        public Snake(uint playerNumber, List<SnakeNode> nodes)
+        public Snake()
+        {
+
+        }
+
+        public Snake(sbyte playerNumber, List<SnakeNode> nodes)
         {
             PlayerNumber = playerNumber;
             Nodes = nodes;
+            Dir = Direction.Down;
         }
-        public Task Move()
+        public Task MoveTail()
         {
             for (int j = Nodes.Count - 1; j > 0; j--)
             {
@@ -27,28 +50,28 @@ namespace SnakeVS.Shared
         }
         public async Task MoveDown()
         {
-            await Move();
+            await MoveTail();
             Nodes[0].PositionY++;
         }
         public async Task MoveUp()
         {
-            await Move();
+            await MoveTail();
             Nodes[0].PositionY--;
         }
 
         public async Task MoveLeft()
         {
-            await Move();
+            await MoveTail();
             Nodes[0].PositionX--;
         }
 
         public async Task MoveRight()
         {
-            await Move();
+            await MoveTail();
             Nodes[0].PositionX++;
         }
 
-        public void changeDirection(Direction toDir)
+        public void QueueDirection(Direction toDir)
         {
             switch (toDir)
             {
@@ -89,6 +112,26 @@ namespace SnakeVS.Shared
             }
         }
 
+        public async Task Move()
+        {
+            switch (Dir)
+            {
+                case Direction.Up:
+                    await MoveUp();
+                    break;
+                case Direction.Down:
+                    await MoveDown();
+                    break;
+                case Direction.Right:
+                    await MoveRight();
+                    break;
+                case Direction.Left:
+                    await MoveLeft();
+                    break;
+            }
+        }
+
+        [Key(13)]
         public SnakeNode Head => Nodes.First(p => p.IsHead);
         public void Consume(SnakeFood sf)
         {
@@ -97,17 +140,20 @@ namespace SnakeVS.Shared
         }
     }
 
+    [MessagePackObject]
     public class SnakeNode
     {
-        public SnakeNode(bool isHead, int positionX, int positionY)
+        public SnakeNode(bool isHead, sbyte positionX, sbyte positionY)
         {
             IsHead = isHead;
             PositionX = positionX;
             PositionY = positionY;
         }
+        [Key(20)]
         public bool IsHead { get; set; }
-        private int positionX;
-        public int PositionX
+        private sbyte positionX;
+        [Key(21)]
+        public sbyte PositionX
         {
             get
             {
@@ -127,8 +173,9 @@ namespace SnakeVS.Shared
             }
         }
 
-        private int positionY;
-        public int PositionY
+        private sbyte positionY;
+        [Key(22)]
+        public sbyte PositionY
         {
             get
             {
@@ -150,6 +197,6 @@ namespace SnakeVS.Shared
     }
     public enum Direction
     {
-        Up, Down, Left, Right
+        Up = 0, Down = 1, Left = 2, Right = 3
     }
 }

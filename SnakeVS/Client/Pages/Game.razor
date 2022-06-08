@@ -1,10 +1,11 @@
-﻿@page "/game"
+﻿@page "/game/{RoomGuid}"
 
 @using Blazor.Extensions
 @using Blazor.Extensions.Canvas
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Text.Json
 @using Blazor.Extensions.Canvas.Canvas2D
+@using MessagePack
 @using SnakeVS.Shared
 
 @inject NavigationManager NavigationManager
@@ -15,10 +16,11 @@
 
 <PageTitle>Sanke VS</PageTitle>
 <p>@userState.UserName</p>
+<button @onclick="startGame">START</button>
 <div @ref="divCanvas" id="divCanvas">
     <BECanvas @ref="canvas" Height="440" Width="440"></BECanvas>
 </div>
-@if(end == true)
+@if(roomContext != null && (roomContext.State == GameState.BlueWon || roomContext.State == GameState.RedWon))
 {
     <br />
     <button>Leave</button><button @onclick="Reset">Play again</button>
@@ -29,10 +31,15 @@
     ElementReference divCanvas;
     protected BECanvasComponent canvas;
     Canvas2DContext canvasContext;
-    Snake snake1;
-    Snake snake2;
-    private bool end = false;
-    List<SnakeFood> foodList = new List<SnakeFood>();
+    Room roomContext;
+    private Guid roomGuid;
+
+    [Parameter]
+    public string? RoomGuid
+    {
+        get => roomGuid.ToString();
+        set => roomGuid = Guid.Parse(value);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -41,55 +48,39 @@
         {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavigationManager.ToAbsoluteUri($"/gamehub"))
-                .AddMessagePackProtocol()
+                .AddMessagePackProtocol(options =>
+                {
+                    options.SerializerOptions =
+                        MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
+                })
                 .Build();
         }
+        hubConnection.On<Room>("UpdateRoom", (room_) =>
+        {
+            roomContext = room_;
+            roomContext.FoodList = new List<SnakeFood>(roomContext.FoodArray);
+            updateCanvas();
+            updatePage();
+            InvokeAsync(StateHasChanged);
+        });
         await hubConnection.StartAsync();
-        await hubConnection.SendAsync("CreateRoom", Guid.NewGuid(), "Testowy");
         await jsRuntime.InvokeVoidAsync("JsFunctions.addKeyboardListenerEvent", DotNetObjectReference.Create(this));
-        //await jsRuntime.InvokeVoidAsync("SetFocusToElement", divCanvas);
-        await jsRuntime.InvokeAsync<object>("initGame", DotNetObjectReference.Create(this));
         canvasContext = await canvas.CreateCanvas2DAsync();
-        snake1 = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1), new SnakeNode(false, 0, 0) });
-        snake2 = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7,5) });
-        snake1.Dir = Direction.Down;
+        await hubConnection.SendAsync("GetGame", roomGuid);
     }
 
-    [JSInvokable]
-    public async ValueTask GameLoop()
+    private async Task startGame()
     {
-        if (end) return;
-        foodList.Add(spawnFood());
-        switch (snake1.Dir)
-        {
-            case Direction.Up:
-                await snake1.MoveUp();
-                break;
-            case Direction.Down:
-                await snake1.MoveDown();
-                break;
-            case Direction.Right:
-                await snake1.MoveRight();
-                break;
-            case Direction.Left:
-                await snake1.MoveLeft();
-                break;
-        }
-        //await snake1.MoveDown();
-        //Console.WriteLine($"{snake1.Nodes.First().PositionX} : {snake1.Nodes.First().PositionY}");
-        //Console.WriteLine($"{snake1.Dir}");
-        
-        if(checkGame())
-        {
-            await canvasContext.SetFontAsync("40px Arial");
-            await canvasContext.SetFillStyleAsync("Blue");
-            await canvasContext.FillTextAsync("Blue won", 120, 200);
-            end = true;
-            this.StateHasChanged();
-            return;
-        }
-        consume(snake1);
-        //Console.WriteLine($"{snake1.Nodes.Count}");
+        await hubConnection.SendAsync("StartGame", roomGuid);
+    }
+
+    private void updatePage()
+    {
+
+    }
+
+    private async void updateCanvas()
+    {
         await canvasContext.ClearRectAsync(0, 0, 440, 440);
         for (int i = 0; i < 12; i++)
         {
@@ -102,7 +93,7 @@
             await canvasContext.StrokeAsync();
         }
 
-        foreach(var food in foodList)
+        foreach(var food in roomContext.FoodList)
         {
             await canvasContext.SetFillStyleAsync("Yellow");
             await canvasContext.BeginPathAsync();
@@ -122,7 +113,7 @@
             await canvasContext.ClosePathAsync();
             await canvasContext.StrokeAsync();
         }
-        foreach (var snakeNode in snake1.Nodes)
+        foreach (var snakeNode in roomContext.BlueSnake.Nodes)
         {
             await canvasContext.SetFillStyleAsync("Red");
             await canvasContext.BeginPathAsync();
@@ -138,7 +129,7 @@
             }
         }
 
-        foreach (var snakeNode in snake2.Nodes)
+        foreach (var snakeNode in roomContext.RedSnake.Nodes)
         {
             await canvasContext.SetFillStyleAsync("Blue");
             await canvasContext.BeginPathAsync();
@@ -159,69 +150,29 @@
 
     private bool checkGame()
     {
-        return (snake1.Nodes.Where(p => !p.IsHead).Any(p => p.PositionX == snake1.Head.PositionX && p.PositionY == snake1.Head.PositionY)) ||
-                (snake2.Nodes.Any(p => p.PositionX == snake1.Head.PositionX && p.PositionY == snake1.Head.PositionY)) ||
-                snake1.Head.PositionX < 0 || snake1.Head.PositionY < 0 || snake1.Head.PositionX > 10 || snake1.Head.PositionY > 10;
+        return (roomContext.BlueSnake.Nodes.Where(p => !p.IsHead).Any(p => p.PositionX == roomContext.BlueSnake.Head.PositionX && p.PositionY == roomContext.BlueSnake.Head.PositionY)) ||
+                (roomContext.RedSnake.Nodes.Any(p => p.PositionX == roomContext.BlueSnake.Head.PositionX && p.PositionY == roomContext.BlueSnake.Head.PositionY)) ||
+                roomContext.BlueSnake.Head.PositionX < 0 || roomContext.BlueSnake.Head.PositionY < 0 || roomContext.BlueSnake.Head.PositionX > 10 || roomContext.BlueSnake.Head.PositionY > 10;
     }
 
-    private SnakeFood spawnFood()
-    {
-        int limit = 12 * 12 - foodList.Count - snake1.Nodes.Count - snake2.Nodes.Count;
-        Random rng = new Random();
-        int foodIndex = rng.Next(limit);
-        int k = 0;
-        for(int i = 0; i<12; i++)
-        {
-            for(int j = 0; j < 12; j++)
-            {
-                if(!foodList.Any(p => p.PositionX == i && p.PositionY == j) && 
-                !snake1.Nodes.Any(p => p.PositionX == i && p.PositionY == j) && 
-                !snake2.Nodes.Any(p => p.PositionX == i && p.PositionY == j))
-                {
-                    if (k == foodIndex)
-                    {
-                        return new SnakeFood()
-                            {
-                                PositionX = i,
-                                PositionY = j
-                            };
-                    }
-                    else k++;
-                }
-            }
-        }
-        return null;
-    }
 
-    private void consume(Snake snake)
-    {
-        var foodToConsume = foodList.FirstOrDefault(p => p.PositionX == snake.Head.PositionX && p.PositionY == snake.Head.PositionY);
-        if (foodToConsume == null) return;
-        snake.Consume(foodToConsume);
-        foodList.Remove(foodToConsume);
-    }
 
     [JSInvokable]
     public async ValueTask KeyDown(KeyboardEventArgs e)
     {
-        //Console.WriteLine(e.Key);
         switch (e.Key)
         {
             case "ArrowLeft":
-                snake1.changeDirection(Direction.Left);
+                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Left, Player.Blue);
                 break;
             case "ArrowRight":
-                snake1.changeDirection(Direction.Right);
+                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Right, Player.Blue);
                 break;
         }
     }
 
-    public void Reset()
+    public async Task Reset()
     {
-        end = false;
-        snake1 = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1), new SnakeNode(false, 0, 0) });
-        snake2 = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7,5) });
-        snake1.Dir = Direction.Down;
-        foodList.Clear();
+        await hubConnection.SendAsync("Reset");
     }
 }

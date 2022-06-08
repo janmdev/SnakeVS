@@ -1,4 +1,6 @@
 ﻿using Blazored.LocalStorage;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SnakeVS.Client
 {
@@ -8,12 +10,17 @@ namespace SnakeVS.Client
         public UserState(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
-            //var userState = _localStorage.GetItemAsync<UserState>("state").Result;
-            //var userState = Task<UserState>.Run(async () => _localStorage.GetItemAsync<UserState>("state")).Result.Result;
-            UserName = "tester";
-            LastRoom = Guid.NewGuid();
+            userName = "tester";
+            lastRoom = Guid.NewGuid();
         }
+
+        public UserState()
+        {
+        }
+
         private string userName;
+        private Guid lastRoom;
+
         public string UserName
         {
             get { return userName; }
@@ -23,8 +30,28 @@ namespace SnakeVS.Client
                 _ = setStorage();
             }
         }
-        public Guid LastRoom { get; set; }
+
+        public Guid LastRoom
+        {
+            get => lastRoom;
+            set => lastRoom = value;
+        }
 
         private async Task setStorage() => await _localStorage.SetItemAsync("state", this);
+
+        public async Task SetupStateFromStorage()
+        {
+            try
+            {
+                var storageState = await _localStorage.GetItemAsync<UserState>("state");
+                if (storageState == null) return;
+                userName = storageState.UserName;
+                lastRoom = storageState.LastRoom;
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
     }
 }
