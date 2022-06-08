@@ -8,13 +8,14 @@
 @using MessagePack
 @using SnakeVS.Shared
 
-@inject NavigationManager NavigationManager
+@inject NavigationManager NavManager
 @inject IJSRuntime jsRuntime
 @inject ILoggerFactory LoggerFactory
 @inject UserState userState
 
 
-<PageTitle>Sanke VS</PageTitle>
+<PageTitle>Snake VS</PageTitle>
+<button @onclick="goBack"> BACK </button><br /><br />
 <p>@userState.UserName</p>
 <button @onclick="joinBlue">Set Blue</button>
 <button @onclick="joinRed">Set Red</button>
@@ -25,6 +26,7 @@
 <div @ref="divCanvas" id="divCanvas">
     <BECanvas @ref="canvas" Height="440" Width="440"></BECanvas>
 </div>
+<p>@state</p>
 @if(roomContext != null && (roomContext.State == GameState.BlueWon || roomContext.State == GameState.RedWon))
 {
     <br />
@@ -38,6 +40,7 @@
     Canvas2DContext canvasContext;
     Room roomContext;
     private Guid roomGuid;
+    private string state;
 
     [Parameter]
     public string? RoomGuid
@@ -49,27 +52,48 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        canvasContext = await canvas.CreateCanvas2DAsync();
         if(hubConnection == null)
         {
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri($"/gamehub"))
+                .WithUrl(NavManager.ToAbsoluteUri($"/gamehub"))
                 .AddMessagePackProtocol(options =>
                 {
                     options.SerializerOptions =
                         MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
-                })
+            })
                 .Build();
         }
         hubConnection.On<Room>("UpdateRoom", (room_) =>
         {
             roomContext = room_;
+            updateState(room_.State);
             updateCanvas();
             InvokeAsync(StateHasChanged);
         });
         await hubConnection.StartAsync();
         await jsRuntime.InvokeVoidAsync("JsFunctions.addKeyboardListenerEvent", DotNetObjectReference.Create(this));
-        canvasContext = await canvas.CreateCanvas2DAsync();
+        
         await hubConnection.SendAsync("GetGame", roomGuid);
+    }
+
+    private void updateState(GameState gState)
+    {
+        switch(gState)
+        {
+            case GameState.BlueWon:
+                state = "Blue won";
+                break;
+            case GameState.RedWon:
+                state = "Red won";
+                break;
+            case GameState.Paused:
+                state = "Paused";
+                break;
+            default:
+                state = "";
+                break;
+        }
     }
 
     private async Task joinBlue()
@@ -182,5 +206,11 @@
     public async Task resume()
     {
         await hubConnection.SendAsync("ResumeGame",roomContext.Guid);
+    }
+
+    private async Task goBack()
+    {
+        await hubConnection.SendAsync("LeaveRoom", roomContext.Guid);
+        NavManager.NavigateTo("/");
     }
 }

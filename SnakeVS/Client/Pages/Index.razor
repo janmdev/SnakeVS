@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using Blazored.LocalStorage
 @using SnakeVS.Shared
 @using Microsoft.AspNetCore.SignalR.Client
 @using MessagePack
@@ -6,20 +7,24 @@
 
 @inject UserState userState
 @inject NavigationManager NavManager
-@inject NavigationManager NavigationManager
+@inject ILocalStorageService localStorageConnector;
+
 
 <input @bind-value="userNameValue" placeholder="Username"/>
 @if (rooms != null)
 {
     <table style="border: 1px solid black">
         <tr>
-            <td>
+            <td width=20px>
+                
+            </td>
+            <td width=150px>
                 Nazwa
             </td>
-            <td>
+            <td width=50px style="text-align:center;">
                 C
             </td>
-            <td>
+            <td width=70px>
 
             </td>
         </tr>
@@ -27,25 +32,31 @@
         {
             <tr>
                 <td>
+                    @lastRoom(room.Id)
+                </td>
+                <td>
                     @room.Name
                 </td>
-                <td>
+                <td style="text-align:center;">
                     @room.PlayerCount / 2
                 </td>
-                <td>
+                <td style="text-align:center;">
                     <button @onclick="() => JoinRoom(room.Id)"> Enter</button>
                 </td>
             </tr>
         }
         <tr>
             <td>
-                <input type="text" @bind-value="roomNameValue"/>
+                
+            </td>
+            <td>
+                <input type="text" @bind-value="roomNameValue" placeholder="New room"/>
             </td>
             <td>
                 
             </td>
-            <td>
-                <button @onclick="() => CreateRoom(roomNameValue)">Add</button>
+            <td style="text-align:center;">
+                <button @onclick="() => CreateRoom(roomNameValue)" >Add</button>
             </td>
         </tr>
     </table>
@@ -60,19 +71,24 @@ else
     private string userNameValue;
     private string roomNameValue;
     private List<ListedRoom> rooms;
+    private LocalStorageService localStorage;
+    private Guid lastRoomGuid;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        localStorage = new LocalStorageService(localStorageConnector);
+        userNameValue = await localStorage.GetUserName();
+        lastRoomGuid = await localStorage.GetLastRoom();
         if(hubConnection == null)
         {
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri($"/roomshub"))
+                .WithUrl(NavManager.ToAbsoluteUri($"/roomshub"))
                 .AddMessagePackProtocol(options =>
                 {
                     options.SerializerOptions =
                         MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
-                })
+            })
                 .Build();
         }
 
@@ -86,12 +102,13 @@ else
         await hubConnection.SendAsync("ListRooms");
     }
 
-    private Task JoinRoom(Guid roomGuid)
+    private async Task JoinRoom(Guid roomGuid)
     {
-        if (String.IsNullOrEmpty(userNameValue)) return null;
+        if (String.IsNullOrEmpty(userNameValue)) return;
         userState.UserName = userNameValue;
+        await localStorage.SetUserName(userNameValue);
+        await localStorage.SetLastRoom(roomGuid);
         NavManager.NavigateTo($"/game/{roomGuid}");
-        return Task.CompletedTask;
     }
 
     private async Task CreateRoom(string roomName)
@@ -101,6 +118,12 @@ else
             await hubConnection.SendAsync("CreateRoom", roomName);
             roomNameValue = "";
         }
+    }
+
+    private string lastRoom(Guid guid)
+    {
+        if (guid == lastRoomGuid) return "☀";
+        return "";
 
     }
 

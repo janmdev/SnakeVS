@@ -16,7 +16,6 @@
 {
     protected override async Task OnInitializedAsync()
     {
-        await userState.SetupStateFromStorage();
         this.StateHasChanged();
         await base.OnInitializedAsync();
     }

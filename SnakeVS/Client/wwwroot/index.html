@@ -41,37 +41,6 @@
     <script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
     <script>
 
-        function gameLoop(timestamp) {
-            //console.log('frame');
-            //window.requestAnimationFrame(gameLoop);
-            //game.instance.invokeMethodAsync('GameLoop');
-            game.instance.invokeMethodAsync('GameLoop',timestamp);
-        }
-
-        function onResize() {
-            if (!window.game.canvas)
-                return;
-
-            //game.canvas.width = window.innerWidth;
-            //game.canvas.height = window.innerHeight;
-        }
-
-        window.initGame = (instance) => {
-            //console.log('init');
-            var canvasContainer = document.getElementById('divCanvas'),
-                canvases = canvasContainer.getElementsByTagName('canvas') || [];
-            window.game = {
-                instance: instance,
-                canvas: canvases.length ? canvases[0] : null
-            };
-
-            window.addEventListener("resize", onResize);
-            onResize();
-            console.log("start");
-            //window.requestAnimationFrame(gameLoop);
-            game_loop = setInterval(gameLoop, 250);
-        }
-
         window.SetFocusToElement = (el) => {
             el.focus();
         };
@@ -94,7 +63,7 @@
                     }
                 };
                 //console.log("key press init");
-                console.log(instance);
+                //console.log(instance);
                 // window.document.addEventListener('onkeydown', function (e) { // Original error
                 window.document.addEventListener('keydown', function (e) {
                     instance.invokeMethodAsync('KeyDown', serializeEvent(e))

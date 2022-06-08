@@ -28,20 +28,25 @@ namespace SnakeVS.Server.Hubs
 
         public async Task LeaveRoom_(Guid roomGuid, string caller)
         {
+            var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
             if (Global.RoomClients[roomGuid].RedClient == caller)
             {
                 Global.RoomClients[roomGuid].RedClient = null;
                 Global.RoomClients[roomGuid].RedName = null;
+                room.RedName = "";
             }
             if (Global.RoomClients[roomGuid].BlueClient == caller)
             {
                 Global.RoomClients[roomGuid].BlueClient = null;
                 Global.RoomClients[roomGuid].BlueName = null;
+                room.BlueName = "";
             }
 
             await Groups.RemoveFromGroupAsync(caller, roomGuid.ToString());
-            var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            
+            
             if (room.State == GameState.Playing) room.State = GameState.Paused;
+            await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
         }
 
         public async Task LeaveRoom(Guid roomGuid)
@@ -150,7 +155,7 @@ namespace SnakeVS.Server.Hubs
                 room.State = checkGame(room);
                 await client.SendAsync("UpdateRoom", room);
                 if (room.State != GameState.Playing) break;
-                await Task.Delay(250);
+                await Task.Delay(2000);
             }
         }
 
@@ -175,21 +180,21 @@ namespace SnakeVS.Server.Hubs
         private GameState checkGame(Room room)
         {
             if ((room.BlueSnake.Nodes.Where(p => !p.IsHead).Any(p =>
-                    p.PositionX == room.BlueSnake.Head.PositionX && p.PositionY == room.BlueSnake.Head.PositionY)) ||
-                (room.RedSnake.Nodes.Any(p =>
-                    p.PositionX == room.BlueSnake.Head.PositionX && p.PositionY == room.BlueSnake.Head.PositionY)) ||
-                room.BlueSnake.Head.PositionX < 0 || room.BlueSnake.Head.PositionY < 0 ||
-                room.BlueSnake.Head.PositionX > 10 || room.BlueSnake.Head.PositionY > 10)
+                    p.PositionX == room.RedSnake.Head.PositionX && p.PositionY == room.RedSnake.Head.PositionY)) ||
+                (room.RedSnake.Nodes.Skip(2).Any(p =>
+                    p.PositionX == room.RedSnake.Head.PositionX && p.PositionY == room.RedSnake.Head.PositionY)) ||
+                room.RedSnake.Head.PositionX < 0 || room.RedSnake.Head.PositionY < 0 ||
+                room.RedSnake.Head.PositionX > 10 || room.RedSnake.Head.PositionY > 10)
             {
                 return GameState.BlueWon;
             }
 
             if ((room.RedSnake.Nodes.Where(p => !p.IsHead).Any(p =>
-                    p.PositionX == room.RedSnake.Head.PositionX && p.PositionY == room.RedSnake.Head.PositionY)) ||
-                (room.BlueSnake.Nodes.Any(p =>
-                    p.PositionX == room.RedSnake.Head.PositionX && p.PositionY == room.RedSnake.Head.PositionY)) ||
-                room.RedSnake.Head.PositionX < 0 || room.RedSnake.Head.PositionY < 0 ||
-                room.RedSnake.Head.PositionX > 10 || room.RedSnake.Head.PositionY > 10)
+                    p.PositionX == room.BlueSnake.Head.PositionX && p.PositionY == room.BlueSnake.Head.PositionY)) ||
+                (room.BlueSnake.Nodes.Skip(2).Any(p =>
+                    p.PositionX == room.BlueSnake.Head.PositionX && p.PositionY == room.BlueSnake.Head.PositionY)) ||
+                room.BlueSnake.Head.PositionX < 0 || room.BlueSnake.Head.PositionY < 0 ||
+                room.BlueSnake.Head.PositionX > 10 || room.BlueSnake.Head.PositionY > 10)
             {
                 return GameState.RedWon;
             }
