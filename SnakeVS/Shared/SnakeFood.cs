@@ -5,9 +5,9 @@ namespace SnakeVS.Shared
     [MessagePackObject]
     public class SnakeFood
     {
-        [Key(30)]
+        [Key(0)]
         public sbyte PositionX { get; set; }
-        [Key(31)]
+        [Key(1)]
         public sbyte PositionY { get; set; }
     }
 }

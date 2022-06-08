@@ -7,11 +7,11 @@ namespace SnakeVS.Shared
     [MessagePackObject]
     public class Snake
     {
-        [Key(10)]
+        [Key(0)]
         public sbyte PlayerNumber { get; set; }
         [IgnoreMember]
         public List<SnakeNode> Nodes { get; set; }
-        [Key(11)]
+        [Key(1)]
         public SnakeNode[] NodeArray
         {
             get
@@ -23,7 +23,7 @@ namespace SnakeVS.Shared
                 Nodes = new List<SnakeNode>(value);
             }
         }
-        [Key(12)]
+        [Key(2)]
         public Direction Dir { get; set; }
 
         public Snake()
@@ -131,7 +131,7 @@ namespace SnakeVS.Shared
             }
         }
 
-        [Key(13)]
+        [IgnoreMember]
         public SnakeNode Head => Nodes.First(p => p.IsHead);
         public void Consume(SnakeFood sf)
         {
@@ -143,16 +143,17 @@ namespace SnakeVS.Shared
     [MessagePackObject]
     public class SnakeNode
     {
+        public SnakeNode() {}
         public SnakeNode(bool isHead, sbyte positionX, sbyte positionY)
         {
             IsHead = isHead;
             PositionX = positionX;
             PositionY = positionY;
         }
-        [Key(20)]
+        [Key(0)]
         public bool IsHead { get; set; }
         private sbyte positionX;
-        [Key(21)]
+        [Key(1)]
         public sbyte PositionX
         {
             get
@@ -174,7 +175,7 @@ namespace SnakeVS.Shared
         }
 
         private sbyte positionY;
-        [Key(22)]
+        [Key(2)]
         public sbyte PositionY
         {
             get
