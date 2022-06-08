@@ -8,21 +8,9 @@ namespace SnakeVS.Shared
     public class Snake
     {
         [Key(0)]
-        public sbyte PlayerNumber { get; set; }
-        [IgnoreMember]
-        public List<SnakeNode> Nodes { get; set; }
+        public int PlayerNumber { get; set; }
         [Key(1)]
-        public SnakeNode[] NodeArray
-        {
-            get
-            {
-                return Nodes.ToArray();
-            }
-            set
-            {
-                Nodes = new List<SnakeNode>(value);
-            }
-        }
+        public List<SnakeNode> Nodes { get; set; }
         [Key(2)]
         public Direction Dir { get; set; }
 
@@ -31,7 +19,7 @@ namespace SnakeVS.Shared
 
         }
 
-        public Snake(sbyte playerNumber, List<SnakeNode> nodes)
+        public Snake(int playerNumber, List<SnakeNode> nodes)
         {
             PlayerNumber = playerNumber;
             Nodes = nodes;
@@ -144,7 +132,7 @@ namespace SnakeVS.Shared
     public class SnakeNode
     {
         public SnakeNode() {}
-        public SnakeNode(bool isHead, sbyte positionX, sbyte positionY)
+        public SnakeNode(bool isHead, int positionX, int positionY)
         {
             IsHead = isHead;
             PositionX = positionX;
@@ -152,9 +140,9 @@ namespace SnakeVS.Shared
         }
         [Key(0)]
         public bool IsHead { get; set; }
-        private sbyte positionX;
+        private int positionX;
         [Key(1)]
-        public sbyte PositionX
+        public int PositionX
         {
             get
             {
@@ -174,9 +162,9 @@ namespace SnakeVS.Shared
             }
         }
 
-        private sbyte positionY;
+        private int positionY;
         [Key(2)]
-        public sbyte PositionY
+        public int PositionY
         {
             get
             {

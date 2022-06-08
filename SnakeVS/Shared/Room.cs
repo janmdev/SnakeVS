@@ -7,10 +7,8 @@ namespace SnakeVS.Shared
         public Room()
         {
             FoodList = new List<SnakeFood>();
-            BlueSnake = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1), new SnakeNode(false, 0, 0) });
+            BlueSnake = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1) });
             RedSnake = new Snake(2, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7, 5) });
-            BlueName = "Player 1";
-            RedName = "Player 2";
         }
         [Key(0)]
         public Guid Guid { get; set; }
@@ -24,24 +22,13 @@ namespace SnakeVS.Shared
         public Snake RedSnake { get; set; }
         [Key(5)]
         public Snake BlueSnake { get; set; }
-        [IgnoreMember] 
+        [Key(6)] 
         public List<SnakeFood> FoodList { get; set; }
 
-        [Key(6)]
-        public SnakeFood[] FoodArray
-        {
-            get
-            {
-                return FoodList.ToArray();
-            }
-            set
-            {
-                FoodList = new List<SnakeFood>(value);
-            }
-        }
         [Key(7)]
         public GameState State { get; set; }
-        
+
+
         public void SpawnFood()
         {
             int limit = 12 * 12 - FoodList.Count - BlueSnake.Nodes.Count - RedSnake.Nodes.Count;
@@ -69,6 +56,15 @@ namespace SnakeVS.Shared
                     }
                 }
             }
+        }
+
+        public void Reset()
+        {
+            
+            BlueSnake = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1) });
+            RedSnake = new Snake(2, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7, 5) });
+            FoodList = new List<SnakeFood>();
+            State = GameState.Init;
         }
     }
 

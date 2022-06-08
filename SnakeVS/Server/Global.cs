@@ -1,4 +1,5 @@
-﻿using SnakeVS.Shared;
+﻿using Microsoft.AspNetCore.SignalR;
+using SnakeVS.Shared;
 
 namespace SnakeVS.Server
 {
@@ -12,5 +13,8 @@ namespace SnakeVS.Server
                 Name = "First room"
             }
         };
+
+        public static IClientProxy ListingRoomsProxy;
+        public static Dictionary<Guid, PlayerConnection> RoomClients = new Dictionary<Guid, PlayerConnection>();
     }
 }

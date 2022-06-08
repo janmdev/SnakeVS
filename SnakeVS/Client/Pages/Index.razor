@@ -8,14 +8,11 @@
 @inject NavigationManager NavManager
 @inject NavigationManager NavigationManager
 
-<input @bind-value="userNameValue"/>
+<input @bind-value="userNameValue" placeholder="Username"/>
 @if (rooms != null)
 {
     <table style="border: 1px solid black">
         <tr>
-            <td>
-                Id
-            </td>
             <td>
                 Nazwa
             </td>
@@ -30,9 +27,6 @@
         {
             <tr>
                 <td>
-                    @room.Id
-                </td>
-                <td>
                     @room.Name
                 </td>
                 <td>
@@ -45,10 +39,10 @@
         }
         <tr>
             <td>
-                
+                <input type="text" @bind-value="roomNameValue"/>
             </td>
             <td>
-                <input type="text" @bind-value="roomNameValue"/>
+                
             </td>
             <td>
                 <button @onclick="() => CreateRoom(roomNameValue)">Add</button>
@@ -94,6 +88,7 @@ else
 
     private Task JoinRoom(Guid roomGuid)
     {
+        if (String.IsNullOrEmpty(userNameValue)) return null;
         userState.UserName = userNameValue;
         NavManager.NavigateTo($"/game/{roomGuid}");
         return Task.CompletedTask;
@@ -104,7 +99,9 @@ else
         if (!rooms.Any(p => p.Name.Trim().ToUpper() == roomName))
         {
             await hubConnection.SendAsync("CreateRoom", roomName);
+            roomNameValue = "";
         }
+
     }
 
 }

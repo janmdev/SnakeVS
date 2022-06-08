@@ -8,12 +8,13 @@ namespace SnakeVS.Server.Hubs
     {
         public override async Task OnConnectedAsync()
         {
-
+            Global.ListingRoomsProxy = Clients.All;
             await base.OnConnectedAsync();
         }
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
+            Global.ListingRoomsProxy = Clients.All;
             return base.OnDisconnectedAsync(exception);
         }
 

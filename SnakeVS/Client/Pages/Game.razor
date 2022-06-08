@@ -16,7 +16,12 @@
 
 <PageTitle>Sanke VS</PageTitle>
 <p>@userState.UserName</p>
-<button @onclick="startGame">START</button>
+<button @onclick="joinBlue">Set Blue</button>
+<button @onclick="joinRed">Set Red</button>
+<br/>
+<span style="color:blue">Blue: @roomContext?.BlueName</span><br/>
+<span style="color:red">Red: @roomContext?.RedName</span><br/>
+<button @onclick="startGame">START</button> <button @onclick="pause">PAUSE</button> <button @onclick="resume">RESUME</button>
 <div @ref="divCanvas" id="divCanvas">
     <BECanvas @ref="canvas" Height="440" Width="440"></BECanvas>
 </div>
@@ -58,9 +63,7 @@
         hubConnection.On<Room>("UpdateRoom", (room_) =>
         {
             roomContext = room_;
-            roomContext.FoodList = new List<SnakeFood>(roomContext.FoodArray);
             updateCanvas();
-            updatePage();
             InvokeAsync(StateHasChanged);
         });
         await hubConnection.StartAsync();
@@ -69,14 +72,19 @@
         await hubConnection.SendAsync("GetGame", roomGuid);
     }
 
+    private async Task joinBlue()
+    {
+        await hubConnection.SendAsync("JoinGame", roomContext.Guid, userState.UserName, true);
+    }
+
+    private async Task joinRed()
+    {
+        await hubConnection.SendAsync("JoinGame", roomContext.Guid, userState.UserName, false);
+    }
+
     private async Task startGame()
     {
         await hubConnection.SendAsync("StartGame", roomGuid);
-    }
-
-    private void updatePage()
-    {
-
     }
 
     private async void updateCanvas()
@@ -97,7 +105,6 @@
         {
             await canvasContext.SetFillStyleAsync("Yellow");
             await canvasContext.BeginPathAsync();
-            //await canvasContext.MoveToAsync(snakeNode.PositionX * 40, snakeNode.PositionY * 40);
             await canvasContext.RectAsync(food.PositionX * 40, food.PositionY * 40, 40, 40);
             await canvasContext.FillAsync();
             await canvasContext.StrokeAsync();
@@ -115,9 +122,8 @@
         }
         foreach (var snakeNode in roomContext.BlueSnake.Nodes)
         {
-            await canvasContext.SetFillStyleAsync("Red");
+            await canvasContext.SetFillStyleAsync("Blue");
             await canvasContext.BeginPathAsync();
-            //await canvasContext.MoveToAsync(snakeNode.PositionX * 40, snakeNode.PositionY * 40);
             await canvasContext.RectAsync(snakeNode.PositionX * 40, snakeNode.PositionY * 40, 40, 40);
             await canvasContext.FillAsync();
             await canvasContext.StrokeAsync();
@@ -131,7 +137,7 @@
 
         foreach (var snakeNode in roomContext.RedSnake.Nodes)
         {
-            await canvasContext.SetFillStyleAsync("Blue");
+            await canvasContext.SetFillStyleAsync("Red");
             await canvasContext.BeginPathAsync();
             //await canvasContext.MoveToAsync(snakeNode.PositionX * 40, snakeNode.PositionY * 40);
             await canvasContext.RectAsync(snakeNode.PositionX * 40, snakeNode.PositionY * 40, 40, 40);
@@ -148,14 +154,6 @@
         await canvasContext.SaveAsync();
     }
 
-    private bool checkGame()
-    {
-        return (roomContext.BlueSnake.Nodes.Where(p => !p.IsHead).Any(p => p.PositionX == roomContext.BlueSnake.Head.PositionX && p.PositionY == roomContext.BlueSnake.Head.PositionY)) ||
-                (roomContext.RedSnake.Nodes.Any(p => p.PositionX == roomContext.BlueSnake.Head.PositionX && p.PositionY == roomContext.BlueSnake.Head.PositionY)) ||
-                roomContext.BlueSnake.Head.PositionX < 0 || roomContext.BlueSnake.Head.PositionY < 0 || roomContext.BlueSnake.Head.PositionX > 10 || roomContext.BlueSnake.Head.PositionY > 10;
-    }
-
-
 
     [JSInvokable]
     public async ValueTask KeyDown(KeyboardEventArgs e)
@@ -163,16 +161,26 @@
         switch (e.Key)
         {
             case "ArrowLeft":
-                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Left, Player.Blue);
+                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Left);
                 break;
             case "ArrowRight":
-                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Right, Player.Blue);
+                await hubConnection.SendAsync("SendMove", roomGuid, Direction.Right);
                 break;
         }
     }
 
     public async Task Reset()
     {
-        await hubConnection.SendAsync("Reset");
+        await hubConnection.SendAsync("ResetGame",roomContext.Guid);
+    }
+
+    public async Task pause()
+    {
+        await hubConnection.SendAsync("PauseGame",roomContext.Guid);
+    }
+
+    public async Task resume()
+    {
+        await hubConnection.SendAsync("ResumeGame",roomContext.Guid);
     }
 }
