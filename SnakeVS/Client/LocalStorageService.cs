@@ -23,7 +23,9 @@ namespace SnakeVS.Client
 
         public async Task<Guid> GetLastRoom()
         {
-            return Guid.Parse(await localStorage.GetItemAsStringAsync("lastRoom"));
+            string lastRoom = await localStorage.GetItemAsStringAsync("lastRoom");
+            if(String.IsNullOrEmpty(lastRoom)) return Guid.Empty;
+            return Guid.Parse(lastRoom);
         }
 
         public async Task SetLastRoom(Guid roomGuid)

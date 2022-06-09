@@ -19,11 +19,11 @@ namespace SnakeVS.Shared
 
         }
 
-        public Snake(int playerNumber, List<SnakeNode> nodes)
+        public Snake(int playerNumber, List<SnakeNode> nodes, Direction dir)
         {
             PlayerNumber = playerNumber;
             Nodes = nodes;
-            Dir = Direction.Down;
+            Dir = dir;
         }
         public Task MoveTail()
         {
@@ -31,7 +31,6 @@ namespace SnakeVS.Shared
             {
                 Nodes[j].PositionX = Nodes[j - 1].PositionX;
                 Nodes[j].PositionY = Nodes[j - 1].PositionY;
-                Console.WriteLine($" {j} - {Nodes[j].PositionX} : {Nodes[j].PositionY}");
             }
 
             return Task.CompletedTask;

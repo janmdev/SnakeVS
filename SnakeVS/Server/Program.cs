@@ -9,11 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR()
-    .AddMessagePackProtocol(options =>
-    {
-        options.SerializerOptions =
-            MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
-    });
+    .AddMessagePackProtocol();
 builder.Services.AddResponseCompression(options => 
     options.MimeTypes = ResponseCompressionDefaults
     .MimeTypes

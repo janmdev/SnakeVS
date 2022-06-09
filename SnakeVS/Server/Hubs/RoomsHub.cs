@@ -20,7 +20,9 @@ namespace SnakeVS.Server.Hubs
 
         public async Task CreateRoom(string name)
         {
-            var room = new Room() { Guid = Guid.NewGuid(), Name = name };
+            if (String.IsNullOrEmpty(name.Trim())) return;
+            if (Global.Rooms.Any(p => p.Name.ToUpper() == name.ToUpper())) return;
+            var room = new Room() { Guid = Guid.NewGuid(), Name = name.Trim() };
             Global.Rooms.Add(room);
             await Clients.All.SendAsync("GetRooms", Global.Rooms.Select(p => new ListedRoom(p)).ToArray());
         }
@@ -28,6 +30,16 @@ namespace SnakeVS.Server.Hubs
         public async Task ListRooms()
         {
             await Clients.Caller.SendAsync("GetRooms", Global.Rooms.Select(p => new ListedRoom(p)).ToArray());
+        }
+
+        public async Task DeleteRoom(Guid roomGuid)
+        {
+            var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            if (String.IsNullOrEmpty(room.BlueName) && String.IsNullOrEmpty(room.RedName))
+            {
+                Global.Rooms.Remove(room);
+                await Clients.All.SendAsync("GetRooms", Global.Rooms.Select(p => new ListedRoom(p)).ToArray());
+            }
         }
     }
 }

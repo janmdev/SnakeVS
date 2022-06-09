@@ -15,23 +15,39 @@
 
 
 <PageTitle>Snake VS</PageTitle>
-<button @onclick="goBack"> BACK </button><br /><br />
-<p>@userState.UserName</p>
-<button @onclick="joinBlue">Set Blue</button>
-<button @onclick="joinRed">Set Red</button>
-<br/>
-<span style="color:blue">Blue: @roomContext?.BlueName</span><br/>
-<span style="color:red">Red: @roomContext?.RedName</span><br/>
-<button @onclick="startGame">START</button> <button @onclick="pause">PAUSE</button> <button @onclick="resume">RESUME</button>
-<div @ref="divCanvas" id="divCanvas">
-    <BECanvas @ref="canvas" Height="440" Width="440"></BECanvas>
+<div class="container-fluid" style="max-width: 500px">
+    <button @onclick="goBack" class="btn btn-outline-danger"> BACK </button><br /><br />
+    <p>@userState.UserName</p>
+    <div style="margin: 10px;">
+        <button @onclick="joinBlue" class="btn btn-primary" style="width: 110px;">Set Blue</button>
+        <button @onclick="joinRed" class="btn btn-danger" style="width: 110px;">Set Red</button>
+    </div>
+    
+    <div style="margin: 10px; height: 30px;">
+        @if (userState?.UserName == roomContext?.BlueName || userState?.UserName == roomContext?.RedName)
+        {
+            <button @onclick="leavePlace" class="btn btn-warning" style="width: 220px;">Leave</button>
+        }
+    </div>
+    
+    <br/>
+    <span style="color:blue">Blue: @roomContext?.BlueName</span><br/>
+    <span style="color:red">Red: @roomContext?.RedName</span><br/>
+    <div class="container">
+        <div><button style="margin-right:10px" @onclick="startGame" class="btn btn-success">START</button><button @onclick="pauseResume" class="btn btn-outline-danger">@prButton</button></div>
+    </div>
+    <br/>
+    <div @ref="divCanvas" id="divCanvas">
+        <BECanvas @ref="canvas" Height="440" Width="440"></BECanvas>
+    </div>
+    <p>@state</p>
+    @if(roomContext != null && (roomContext.State == GameState.BlueWon || roomContext.State == GameState.RedWon))
+    {
+        <br />
+        <button @onclick="Reset" class="btn btn-warning">Play again</button>
+    }
 </div>
-<p>@state</p>
-@if(roomContext != null && (roomContext.State == GameState.BlueWon || roomContext.State == GameState.RedWon))
-{
-    <br />
-    <button>Leave</button><button @onclick="Reset">Play again</button>
-}
+
 
 @code {
     private HubConnection? hubConnection;
@@ -41,6 +57,7 @@
     Room roomContext;
     private Guid roomGuid;
     private string state;
+    private string prButton;
 
     [Parameter]
     public string? RoomGuid
@@ -57,11 +74,7 @@
         {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri($"/gamehub"))
-                .AddMessagePackProtocol(options =>
-                {
-                    options.SerializerOptions =
-                        MessagePackSerializerOptions.Standard;//.WithCompression(MessagePackCompression.Lz4BlockArray);
-            })
+                .AddMessagePackProtocol()
                 .Build();
         }
         hubConnection.On<Room>("UpdateRoom", (room_) =>
@@ -79,6 +92,8 @@
 
     private void updateState(GameState gState)
     {
+        if (gState == GameState.Paused) prButton = "RESUME";
+        else prButton = "PAUSE";
         switch(gState)
         {
             case GameState.BlueWon:
@@ -193,19 +208,22 @@
         }
     }
 
-    public async Task Reset()
+    private async Task Reset()
     {
         await hubConnection.SendAsync("ResetGame",roomContext.Guid);
     }
 
-    public async Task pause()
+    private async Task pauseResume()
     {
-        await hubConnection.SendAsync("PauseGame",roomContext.Guid);
+        if(roomContext.State == GameState.Paused)
+            await hubConnection.SendAsync("ResumeGame",roomContext.Guid);
+        else
+            await hubConnection.SendAsync("PauseGame",roomContext.Guid);
     }
 
-    public async Task resume()
+    private async Task leavePlace()
     {
-        await hubConnection.SendAsync("ResumeGame",roomContext.Guid);
+        await hubConnection.SendAsync("LeavePlace",roomGuid);
     }
 
     private async Task goBack()
@@ -213,4 +231,6 @@
         await hubConnection.SendAsync("LeaveRoom", roomContext.Guid);
         NavManager.NavigateTo("/");
     }
+
+
 }

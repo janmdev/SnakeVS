@@ -7,8 +7,18 @@ namespace SnakeVS.Shared
         public Room()
         {
             FoodList = new List<SnakeFood>();
-            BlueSnake = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1) });
-            RedSnake = new Snake(2, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7, 5) });
+            BlueSnake = new Snake(1, new List<SnakeNode>()
+            {
+                new SnakeNode(true, 0, 2), 
+                new SnakeNode(false, 0, 1), 
+                new SnakeNode(false, 0, 0)
+            }, Direction.Down);
+            RedSnake = new Snake(2, new List<SnakeNode>()
+            {
+                new SnakeNode(true, 10, 8), 
+                new SnakeNode(false, 10, 9), 
+                new SnakeNode(false, 10, 10)
+            }, Direction.Up);
         }
         [Key(0)]
         public Guid Guid { get; set; }
@@ -60,10 +70,19 @@ namespace SnakeVS.Shared
 
         public void Reset()
         {
-            
-            BlueSnake = new Snake(1, new List<SnakeNode>() { new SnakeNode(true, 0, 3), new SnakeNode(false, 0, 2), new SnakeNode(false, 0, 1) });
-            RedSnake = new Snake(2, new List<SnakeNode>() { new SnakeNode(true, 5, 5), new SnakeNode(false, 6, 5), new SnakeNode(false, 7, 5) });
             FoodList = new List<SnakeFood>();
+            BlueSnake = new Snake(1, new List<SnakeNode>()
+            {
+                new SnakeNode(true, 0, 2),
+                new SnakeNode(false, 0, 1),
+                new SnakeNode(false, 0, 0)
+            }, Direction.Down);
+            RedSnake = new Snake(2, new List<SnakeNode>()
+            {
+                new SnakeNode(true, 10, 8),
+                new SnakeNode(false, 10, 9),
+                new SnakeNode(false, 10, 10)
+            }, Direction.Up);
             State = GameState.Init;
         }
     }

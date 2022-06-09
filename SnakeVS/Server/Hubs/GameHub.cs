@@ -29,24 +29,28 @@ namespace SnakeVS.Server.Hubs
         public async Task LeaveRoom_(Guid roomGuid, string caller)
         {
             var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
-            if (Global.RoomClients[roomGuid].RedClient == caller)
+            if (Global.RoomClients.ContainsKey(roomGuid))
             {
-                Global.RoomClients[roomGuid].RedClient = null;
-                Global.RoomClients[roomGuid].RedName = null;
-                room.RedName = "";
+                if (Global.RoomClients[roomGuid].Contains(Context.ConnectionId))
+                    if (room.State == GameState.Playing) room.State = GameState.Paused;
+                if (Global.RoomClients[roomGuid].RedClient == caller)
+                {
+                    Global.RoomClients[roomGuid].RedClient = null;
+                    Global.RoomClients[roomGuid].RedName = null;
+                    room.RedName = "";
+                }
+                if (Global.RoomClients[roomGuid].BlueClient == caller)
+                {
+                    Global.RoomClients[roomGuid].BlueClient = null;
+                    Global.RoomClients[roomGuid].BlueName = null;
+                    room.BlueName = "";
+                }
             }
-            if (Global.RoomClients[roomGuid].BlueClient == caller)
-            {
-                Global.RoomClients[roomGuid].BlueClient = null;
-                Global.RoomClients[roomGuid].BlueName = null;
-                room.BlueName = "";
-            }
+            
 
             await Groups.RemoveFromGroupAsync(caller, roomGuid.ToString());
-            
-            
-            if (room.State == GameState.Playing) room.State = GameState.Paused;
             await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
+            await Global.ListingRoomsProxy.SendAsync("GetRooms", Global.Rooms.Select(p => new ListedRoom(p)).ToArray());
         }
 
         public async Task LeaveRoom(Guid roomGuid)
@@ -115,16 +119,37 @@ namespace SnakeVS.Server.Hubs
 
         public async Task StartGame(Guid roomGuid)
         {
+            if (!Global.RoomClients.ContainsKey(roomGuid) || !Global.RoomClients[roomGuid].Contains(Context.ConnectionId)) return;
             var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            if (room.State != GameState.Init) return;
             if (String.IsNullOrEmpty(room.BlueName) || String.IsNullOrEmpty(room.RedName)) return;// send err
             room.State = GameState.Playing;
-            gameRunner(room, Clients.Group(roomGuid.ToString())).Start();
+            _ = gameRunner(room, Clients.Group(roomGuid.ToString()));
 
         }
 
+        public async Task LeavePlace(Guid roomGuid)
+        {
+            var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            if(room.State == GameState.Playing) return;
+            if (Global.RoomClients[roomGuid].RedClient == Context.ConnectionId)
+            {
+                Global.RoomClients[roomGuid].RedClient = null;
+                Global.RoomClients[roomGuid].RedName = null;
+                room.RedName = "";
+            }
+            if (Global.RoomClients[roomGuid].BlueClient == Context.ConnectionId)
+            {
+                Global.RoomClients[roomGuid].BlueClient = null;
+                Global.RoomClients[roomGuid].BlueName = null;
+                room.BlueName = "";
+            }
+            await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
+        }
 
         public async Task ResetGame(Guid roomGuid)
         {
+            if (!Global.RoomClients[roomGuid].Contains(Context.ConnectionId)) return;
             var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
             room.Reset();
             await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
@@ -132,14 +157,20 @@ namespace SnakeVS.Server.Hubs
 
         public async Task PauseGame(Guid roomGuid)
         {
+            if (!Global.RoomClients[roomGuid].Contains(Context.ConnectionId)) return;
             var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            if (room.State != GameState.Playing) return;
             room.State = GameState.Paused;
+            await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
         }
 
         public async Task ResumeGame(Guid roomGuid)
         {
+            if (!Global.RoomClients[roomGuid].Contains(Context.ConnectionId)) return;
             var room = Global.Rooms.FirstOrDefault(p => p.Guid == roomGuid);
+            if (String.IsNullOrEmpty(room.BlueName) || String.IsNullOrEmpty(room.RedName)) return;
             room.State = GameState.Playing;
+            await Clients.Group(roomGuid.ToString()).SendAsync("UpdateRoom", room);
         }
 
         private async Task gameRunner(Room room, IClientProxy client)
@@ -155,7 +186,7 @@ namespace SnakeVS.Server.Hubs
                 room.State = checkGame(room);
                 await client.SendAsync("UpdateRoom", room);
                 if (room.State != GameState.Playing) break;
-                await Task.Delay(2000);
+                await Task.Delay(500);
             }
         }
 
@@ -175,8 +206,6 @@ namespace SnakeVS.Server.Hubs
             }
         }
 
-
-        //TODO SPRAWDZ WARUNKI
         private GameState checkGame(Room room)
         {
             if ((room.BlueSnake.Nodes.Where(p => !p.IsHead).Any(p =>
